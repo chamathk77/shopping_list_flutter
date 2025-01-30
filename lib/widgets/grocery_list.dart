@@ -17,6 +17,7 @@ class GroceryList extends StatefulWidget {
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _groceryItems = [];
   var _isLoading = true;
+  String? error = null;
 
   @override
   void initState() {
@@ -30,6 +31,16 @@ class _GroceryListState extends State<GroceryList> {
       'shopping-list.json',
     );
     final response = await http.get(url);
+
+    print(response.statusCode);
+
+    if (response.statusCode >= 400) {
+      setState(() {
+        _isLoading = false;
+        error = 'Could not fetch items. Please try again later.';
+      });
+      return;
+    }
 
     if (response.body == 'null') {
       setState(() {
@@ -81,16 +92,37 @@ class _GroceryListState extends State<GroceryList> {
     // _loadItems();
   }
 
-  void _removeItem(GroceryItem item) {
+  void _removeItem(GroceryItem item) async {
+    final index = _groceryItems.indexOf(item);
+    final url = Uri.https(
+      'flutter-prep-58e77-default-rtdb.firebaseio.com',
+      'shopping-list/${item.id}.json',
+    );
     setState(() {
       _groceryItems.remove(item);
     });
+
+    final response = await http.delete(url);
+    if (response.statusCode >= 400) {
+      setState(() {
+        // _isLoading = false;
+        // error = 'Could not delete item. Please try again later.';
+        _groceryItems.insert(index, item);
+      });
+      return;
+    }
   }
 
   Widget build(BuildContext context) {
     Widget content = const Center(
       child: Text('No items added yet!'),
     );
+
+    if (error != null) {
+      content = Center(
+        child: Text(error!),
+      );
+    }
 
     if (_isLoading) {
       content = const Center(

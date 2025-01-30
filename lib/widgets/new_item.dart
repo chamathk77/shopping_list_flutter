@@ -22,9 +22,14 @@ class _NewItemState extends State<NewItem> {
   var _enteredName = '';
   var _enteredQuantity = 1;
   var _selectedCategory = categories[Categories.vegetables];
+  var _isSending = false;
 
   void _saveItem() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isSending = true;
+      });
+
       _formKey.currentState!.save();
 
       final url = Uri.https(
@@ -46,13 +51,6 @@ class _NewItemState extends State<NewItem> {
         ),
       );
 
-      print(_enteredName);
-      print(_enteredQuantity);
-      print(_selectedCategory);
-
-      print(response.statusCode);
-      print(response.body);
-
       final Map<String, dynamic> resData = json.decode(response.body);
 
       if (!context.mounted) {
@@ -66,15 +64,16 @@ class _NewItemState extends State<NewItem> {
           category: _selectedCategory!,
         ),
       );
-      // Navigator.of(context).pop(
-      //   GroceryItem(
-      //     id: DateTime.now().toString(),
-      //     name: _enteredName,
-      //     quantity: _enteredQuantity,
-      //     category: _selectedCategory!,
-      //   ),
-      // );
     }
+  }
+
+  void _resetForm() {
+    setState(() {
+      _formKey.currentState!.reset();
+      _enteredName = '';
+      _enteredQuantity = 1;
+      _selectedCategory = categories[Categories.vegetables];
+    });
   }
 
   Widget build(BuildContext context) {
@@ -104,9 +103,6 @@ class _NewItemState extends State<NewItem> {
                   return null; // No error
                 },
                 onSaved: (value) {
-                  // if (value == null) {
-                  //   return;
-                  // }
                   _enteredName = value!;
                 },
               ),
@@ -125,7 +121,7 @@ class _NewItemState extends State<NewItem> {
                             value.trim().isEmpty ||
                             int.tryParse(value) == null ||
                             int.tryParse(value)! <= 0) {
-                          return 'Must be a valid,positive Number';
+                          return 'Must be a valid, positive number';
                         }
 
                         return null; // No error
@@ -136,7 +132,8 @@ class _NewItemState extends State<NewItem> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: DropdownButtonFormField(
+                    child: DropdownButtonFormField<Category>(
+                      value: _selectedCategory,
                       items: [
                         for (final category in categories.entries)
                           DropdownMenuItem(
@@ -168,12 +165,17 @@ class _NewItemState extends State<NewItem> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () {},
+                    onPressed: _isSending ? null : _resetForm,
                     child: const Text('Reset'),
                   ),
                   ElevatedButton(
-                    onPressed: _saveItem,
-                    child: const Text('Add Item'),
+                    onPressed: _isSending ? null : _saveItem,
+                    child: _isSending
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator())
+                        : const Text('Add Item'),
                   )
                 ],
               )
