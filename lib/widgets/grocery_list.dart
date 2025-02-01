@@ -30,48 +30,63 @@ class _GroceryListState extends State<GroceryList> {
       'flutter-prep-58e77-default-rtdb.firebaseio.com',
       'shopping-list.json',
     );
-    final response = await http.get(url);
 
-    print(response.statusCode);
+    try {
+      final response = await http.get(url);
 
-    if (response.statusCode >= 400) {
+      print(response.statusCode);
+
+      if (response.statusCode >= 400) {
+        setState(() {
+          _isLoading = false;
+          error = 'Something went wrong. Please try again later.';
+        });
+        return;
+      }
+
+      if (response.body == 'null') {
+        setState(() {
+          _groceryItems = [];
+        });
+        return;
+      }
+
+      if (response.body == 'null') {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final Map<String, dynamic> listdata = json.decode(response.body);
+      final List<GroceryItem> loadedItems = [];
+
+      for (final item in listdata.entries) {
+        final category = categories.entries.firstWhere(
+          (element) => element.value.name == item.value['category'],
+          // Provide a default category
+        );
+
+        loadedItems.add(
+          GroceryItem(
+            id: item.key,
+            name: item.value['name'],
+            quantity: item.value['quantity'],
+            category: category.value,
+          ),
+        );
+      }
+
+      setState(() {
+        _groceryItems = loadedItems;
+        _isLoading = false;
+      });
+    } catch (err) {
       setState(() {
         _isLoading = false;
-        error = 'Could not fetch items. Please try again later.';
+        error = 'Something went wrong. Please try again later.';
       });
-      return;
     }
-
-    if (response.body == 'null') {
-      setState(() {
-        _groceryItems = [];
-      });
-      return;
-    }
-
-    final Map<String, dynamic> listdata = json.decode(response.body);
-    final List<GroceryItem> loadedItems = [];
-
-    for (final item in listdata.entries) {
-      final category = categories.entries.firstWhere(
-        (element) => element.value.name == item.value['category'],
-        // Provide a default category
-      );
-
-      loadedItems.add(
-        GroceryItem(
-          id: item.key,
-          name: item.value['name'],
-          quantity: item.value['quantity'],
-          category: category.value,
-        ),
-      );
-    }
-
-    setState(() {
-      _groceryItems = loadedItems;
-      _isLoading = false;
-    });
   }
 
   Future<void> _addNewItem() async {
